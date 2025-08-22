@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { GoalCard } from "@/components/ui/goal-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { CalendarIntegrationModal } from "@/components/calendar-integration-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -63,13 +65,10 @@ const mockGoals = [
 
 const Index = () => {
   const { toast } = useToast();
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const handleConnectCalendar = () => {
-    toast({
-      title: "Integração com Google Agenda",
-      description: "Conecte sua conta do Google para sincronizar automaticamente suas metas com a agenda.",
-      duration: 5000,
-    });
+    setIsCalendarModalOpen(true);
   };
 
   const handleCreateGoal = () => {
@@ -257,6 +256,11 @@ const Index = () => {
           </section>
         </main>
       </div>
+      
+      <CalendarIntegrationModal 
+        open={isCalendarModalOpen} 
+        onOpenChange={setIsCalendarModalOpen} 
+      />
     </div>
   );
 };

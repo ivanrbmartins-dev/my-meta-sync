@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { CalendarIntegrationModal } from "@/components/calendar-integration-modal";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -22,13 +24,10 @@ import {
 
 export function Header() {
   const { toast } = useToast();
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
   const handleConnectCalendar = () => {
-    toast({
-      title: "Integração com Google Agenda",
-      description: "Conecte sua conta do Google para sincronizar automaticamente suas metas com a agenda.",
-      duration: 5000,
-    });
+    setIsCalendarModalOpen(true);
   };
 
   return (
@@ -116,6 +115,11 @@ export function Header() {
           </DropdownMenu>
         </div>
       </div>
+      
+      <CalendarIntegrationModal 
+        open={isCalendarModalOpen} 
+        onOpenChange={setIsCalendarModalOpen} 
+      />
     </header>
   );
 }
