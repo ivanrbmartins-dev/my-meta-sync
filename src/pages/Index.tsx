@@ -6,6 +6,7 @@ import { GoalCard } from "@/components/ui/goal-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarIntegrationModal } from "@/components/calendar-integration-modal";
+import { GoalCreationModal } from "@/components/goal-creation-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -66,17 +67,14 @@ const mockGoals = [
 const Index = () => {
   const { toast } = useToast();
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
   const handleConnectCalendar = () => {
     setIsCalendarModalOpen(true);
   };
 
   const handleCreateGoal = () => {
-    toast({
-      title: "Criar Nova Meta",
-      description: "Funcionalidade em desenvolvimento. Em breve você poderá criar suas metas!",
-      duration: 5000,
-    });
+    setIsGoalModalOpen(true);
   };
 
   return (
@@ -260,6 +258,11 @@ const Index = () => {
       <CalendarIntegrationModal 
         open={isCalendarModalOpen} 
         onOpenChange={setIsCalendarModalOpen} 
+      />
+      
+      <GoalCreationModal 
+        open={isGoalModalOpen} 
+        onOpenChange={setIsGoalModalOpen} 
       />
     </div>
   );
