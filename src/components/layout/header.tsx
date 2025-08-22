@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -20,6 +21,16 @@ import {
 } from "lucide-react";
 
 export function Header() {
+  const { toast } = useToast();
+
+  const handleConnectCalendar = () => {
+    toast({
+      title: "Integração com Google Agenda",
+      description: "Conecte sua conta do Google para sincronizar automaticamente suas metas com a agenda.",
+      duration: 5000,
+    });
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center px-4">
@@ -47,7 +58,12 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center space-x-4">
           {/* Google Calendar Integration */}
-          <Button variant="outline" size="sm" className="hidden md:flex">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="hidden md:flex"
+            onClick={handleConnectCalendar}
+          >
             <Calendar className="h-4 w-4 mr-2" />
             Conectar Agenda
           </Button>

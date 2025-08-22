@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { GoalCard } from "@/components/ui/goal-card";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -61,6 +62,24 @@ const mockGoals = [
 ];
 
 const Index = () => {
+  const { toast } = useToast();
+
+  const handleConnectCalendar = () => {
+    toast({
+      title: "Integração com Google Agenda",
+      description: "Conecte sua conta do Google para sincronizar automaticamente suas metas com a agenda.",
+      duration: 5000,
+    });
+  };
+
+  const handleCreateGoal = () => {
+    toast({
+      title: "Criar Nova Meta",
+      description: "Funcionalidade em desenvolvimento. Em breve você poderá criar suas metas!",
+      duration: 5000,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -86,11 +105,20 @@ const Index = () => {
                     Sincronização automática com Google Agenda para você nunca mais perder um prazo.
                   </p>
                   <div className="mt-8 flex items-center gap-4">
-                    <Button className="bg-white text-primary hover:bg-white/90" size="lg">
+                    <Button 
+                      className="bg-white text-primary hover:bg-white/90" 
+                      size="lg"
+                      onClick={handleCreateGoal}
+                    >
                       <Plus className="mr-2 h-5 w-5" />
                       Criar Primeira Meta
                     </Button>
-                    <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" size="lg">
+                    <Button 
+                      variant="outline" 
+                      className="border-white/20 text-white hover:bg-white/10" 
+                      size="lg"
+                      onClick={handleConnectCalendar}
+                    >
                       <Calendar className="mr-2 h-5 w-5" />
                       Conectar Agenda
                     </Button>
