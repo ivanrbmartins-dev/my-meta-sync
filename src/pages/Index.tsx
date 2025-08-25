@@ -74,6 +74,7 @@ const Index = () => {
   };
 
   const handleCreateGoal = () => {
+    console.log("Opening Goal Creation Modal");
     setIsGoalModalOpen(true);
   };
 
@@ -264,6 +265,7 @@ const Index = () => {
         open={isGoalModalOpen} 
         onOpenChange={setIsGoalModalOpen} 
       />
+      {/* Debug: Modal state = {isGoalModalOpen.toString()} */}
     </div>
   );
 };
