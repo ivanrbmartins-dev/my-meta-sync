@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { GoalCard } from "@/components/ui/goal-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useGoals } from "@/hooks/use-goals";
 import { CalendarIntegrationModal } from "@/components/calendar-integration-modal";
 import { GoalCreationModal } from "@/components/goal-creation-modal";
+import { AuthModal } from "@/components/auth-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Target, 
   TrendingUp, 
@@ -16,66 +19,77 @@ import {
   AlertTriangle,
   Calendar,
   Plus,
-  ArrowRight
+  ArrowRight,
+  LogIn,
+  LogOut
 } from "lucide-react";
 import heroImage from "@/assets/hero-dashboard.png";
 
-// Mock data for demonstration
-const mockGoals = [
-  {
-    id: "1",
-    title: "Concluir Curso de React Advanced",
-    description: "Finalizar todas as aulas e projetos práticos do curso avançado de React",
-    status: "in_progress" as const,
-    priority: "high" as const,
-    progress: 75,
-    dueDate: "2024-09-15",
-    category: "Educacional"
-  },
-  {
-    id: "2", 
-    title: "Lançar App MetaFlow",
-    description: "Desenvolver e publicar a primeira versão da aplicação de gestão de metas",
-    status: "in_progress" as const,
-    priority: "high" as const,
-    progress: 60,
-    dueDate: "2024-10-01",
-    category: "Profissional"
-  },
-  {
-    id: "3",
-    title: "Emagrecer 5kg",
-    description: "Perder peso através de exercícios regulares e alimentação balanceada",
-    status: "in_progress" as const,
-    priority: "medium" as const,
-    progress: 40,
-    dueDate: "2024-11-30",
-    category: "Saúde"
-  },
-  {
-    id: "4",
-    title: "Economizar R$ 10.000",
-    description: "Guardar dinheiro para fundo de emergência",
-    status: "completed" as const,
-    priority: "high" as const,
-    progress: 100,
-    dueDate: "2024-08-31",
-    category: "Financeiro"
-  }
-];
-
 const Index = () => {
   const { toast } = useToast();
+  const { goals, loading } = useGoals();
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = goals.length;
+    const inProgress = goals.filter(g => g.status === 'in_progress').length;
+    const completed = goals.filter(g => g.status === 'completed').length;
+    const overdue = goals.filter(g => g.status === 'overdue').length;
+    const avgProgress = total > 0 ? Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / total) : 0;
+    
+    return { total, inProgress, completed, overdue, avgProgress };
+  }, [goals]);
+
+  const priorityGoals = useMemo(() => {
+    return goals
+      .filter(g => g.status !== 'completed')
+      .sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      })
+      .slice(0, 4);
+  }, [goals]);
 
   const handleConnectCalendar = () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setIsCalendarModalOpen(true);
   };
 
   const handleCreateGoal = () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     console.log("Opening Goal Creation Modal");
     setIsGoalModalOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso.",
+    });
   };
 
   return (
@@ -120,6 +134,28 @@ const Index = () => {
                       <Calendar className="mr-2 h-5 w-5" />
                       Conectar Agenda
                     </Button>
+                    {!user && (
+                      <Button 
+                        variant="outline" 
+                        className="border-white/20 text-white hover:bg-white/10" 
+                        size="lg"
+                        onClick={() => setIsAuthModalOpen(true)}
+                      >
+                        <LogIn className="mr-2 h-5 w-5" />
+                        Entrar
+                      </Button>
+                    )}
+                    {user && (
+                      <Button 
+                        variant="outline" 
+                        className="border-white/20 text-white hover:bg-white/10" 
+                        size="lg"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut className="mr-2 h-5 w-5" />
+                        Sair
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="relative">
@@ -139,31 +175,31 @@ const Index = () => {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                   title="Total de Metas"
-                  value={12}
-                  description="+2 esta semana"
+                  value={loading ? "-" : stats.total}
+                  description={loading ? "Carregando..." : `${stats.inProgress} em andamento`}
                   icon={Target}
                   variant="default"
                 />
                 <StatCard
                   title="Em Andamento"
-                  value={5}
-                  description="67% de progresso médio"
+                  value={loading ? "-" : stats.inProgress}
+                  description={loading ? "Carregando..." : `${stats.avgProgress}% progresso médio`}
                   icon={TrendingUp}
                   variant="default"
                 />
                 <StatCard
                   title="Concluídas"
-                  value={7}
-                  description="58% taxa de sucesso"
+                  value={loading ? "-" : stats.completed}
+                  description={loading ? "Carregando..." : `${stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}% taxa de sucesso`}
                   icon={TrendingUp}
                   variant="success"
                 />
                 <StatCard
-                  title="Próximos Prazos"
-                  value={3}
-                  description="Nos próximos 7 dias"
+                  title="Atrasadas"
+                  value={loading ? "-" : stats.overdue}
+                  description={loading ? "Carregando..." : stats.overdue > 0 ? "Requer atenção" : "Tudo em dia"}
                   icon={AlertTriangle}
-                  variant="warning"
+                  variant={stats.overdue > 0 ? "warning" : "success"}
                 />
               </div>
             </div>
@@ -185,9 +221,41 @@ const Index = () => {
                     </Button>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    {mockGoals.slice(0, 4).map((goal) => (
-                      <GoalCard key={goal.id} goal={goal} />
-                    ))}
+                    {loading ? (
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-48 bg-muted/20 rounded-lg animate-pulse" />
+                      ))
+                    ) : priorityGoals.length > 0 ? (
+                      priorityGoals.map((goal) => (
+                        <GoalCard key={goal.id} goal={goal} />
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center py-12">
+                        <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground mb-2">
+                          {user ? "Nenhuma meta encontrada" : "Entre para ver suas metas"}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {user 
+                            ? "Crie sua primeira meta para começar a acompanhar seu progresso."
+                            : "Faça login ou crie uma conta para gerenciar suas metas."
+                          }
+                        </p>
+                        <Button onClick={user ? handleCreateGoal : () => setIsAuthModalOpen(true)}>
+                          {user ? (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Criar Primeira Meta
+                            </>
+                          ) : (
+                            <>
+                              <LogIn className="mr-2 h-4 w-4" />
+                              Entrar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -255,6 +323,11 @@ const Index = () => {
           </section>
         </main>
       </div>
+      
+      <AuthModal 
+        open={isAuthModalOpen} 
+        onOpenChange={setIsAuthModalOpen} 
+      />
       
       <CalendarIntegrationModal 
         open={isCalendarModalOpen} 

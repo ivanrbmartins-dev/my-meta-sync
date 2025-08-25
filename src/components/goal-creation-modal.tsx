@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useGoals } from "@/hooks/use-goals";
 import { Calendar, Target } from "lucide-react";
 
 interface GoalCreationModalProps {
@@ -22,6 +23,8 @@ interface GoalCreationModalProps {
 
 export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps) {
   const { toast } = useToast();
+  const { createGoal } = useGoals();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -31,7 +34,7 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
     dueDate: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.dueDate || !formData.priority) {
@@ -43,22 +46,31 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
       return;
     }
 
-    // Aqui seria a lógica para salvar a meta
-    toast({
-      title: "Meta criada com sucesso!",
-      description: `"${formData.title}" foi adicionada às suas metas.`,
+    setIsSubmitting(true);
+    
+    const success = await createGoal({
+      title: formData.title,
+      description: formData.description || undefined,
+      category: formData.category || undefined,
+      priority: formData.priority as any,
+      startDate: formData.startDate || undefined,
+      dueDate: formData.dueDate,
     });
 
-    // Reset form and close modal
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      priority: "",
-      startDate: "",
-      dueDate: "",
-    });
-    onOpenChange(false);
+    if (success) {
+      // Reset form and close modal
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        priority: "",
+        startDate: "",
+        dueDate: "",
+      });
+      onOpenChange(false);
+    }
+    
+    setIsSubmitting(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -160,9 +172,9 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isSubmitting}>
               <Calendar className="mr-2 h-4 w-4" />
-              Criar Meta
+              {isSubmitting ? "Criando..." : "Criar Meta"}
             </Button>
           </DialogFooter>
         </form>
