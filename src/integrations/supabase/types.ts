@@ -59,6 +59,47 @@ export type Database = {
         }
         Relationships: []
       }
+      micro_goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          goal_id: string
+          id: string
+          is_completed: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          goal_id: string
+          id?: string
+          is_completed?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          goal_id?: string
+          id?: string
+          is_completed?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "micro_goals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

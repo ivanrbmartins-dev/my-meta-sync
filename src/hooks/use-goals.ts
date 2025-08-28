@@ -17,6 +17,8 @@ export interface Goal {
   category: string | null;
   created_at: string;
   updated_at: string;
+  microGoalsCount?: number;
+  completedMicroGoalsCount?: number;
 }
 
 export interface CreateGoalData {
@@ -43,24 +45,38 @@ export function useGoals() {
 
       const { data, error } = await supabase
         .from('goals')
-        .select('*')
+        .select(`
+          *,
+          micro_goals:micro_goals(count)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedGoals = data?.map(goal => ({
-        id: goal.id,
-        title: goal.title,
-        description: goal.description,
-        status: goal.status as GoalStatus,
-        priority: goal.priority as GoalPriority,
-        progress: goal.progress,
-        dueDate: goal.due_date,
-        startDate: goal.start_date,
-        category: goal.category,
-        created_at: goal.created_at,
-        updated_at: goal.updated_at,
-      })) || [];
+      const formattedGoals = await Promise.all(data?.map(async (goal) => {
+        // Buscar contagem de micro metas completadas separadamente
+        const { count: completedCount } = await supabase
+          .from('micro_goals')
+          .select('*', { count: 'exact', head: true })
+          .eq('goal_id', goal.id)
+          .eq('is_completed', true);
+
+        return {
+          id: goal.id,
+          title: goal.title,
+          description: goal.description,
+          status: goal.status as GoalStatus,
+          priority: goal.priority as GoalPriority,
+          progress: goal.progress,
+          dueDate: goal.due_date,
+          startDate: goal.start_date,
+          category: goal.category,
+          created_at: goal.created_at,
+          updated_at: goal.updated_at,
+          microGoalsCount: goal.micro_goals?.[0]?.count || 0,
+          completedMicroGoalsCount: completedCount || 0,
+        };
+      }) || []);
 
       setGoals(formattedGoals);
     } catch (error) {

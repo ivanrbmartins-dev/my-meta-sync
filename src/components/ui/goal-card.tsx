@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { MicroGoalsModal } from "@/components/micro-goals-modal";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, AlertTriangle, CheckCircle, Edit, Trash2 } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, CheckCircle, Edit, Trash2, Target, List } from "lucide-react";
 import type { Goal, GoalStatus, GoalPriority } from "@/hooks/use-goals";
 
 export type { GoalStatus, GoalPriority };
@@ -31,6 +33,7 @@ const priorityConfig = {
 };
 
 export function GoalCard({ goal, className, onEdit, onDelete }: GoalCardProps) {
+  const [isMicroGoalsModalOpen, setIsMicroGoalsModalOpen] = useState(false);
   const statusInfo = statusConfig[goal.status];
   const priorityInfo = priorityConfig[goal.priority];
   const StatusIcon = statusInfo.icon;
@@ -72,6 +75,12 @@ export function GoalCard({ goal, className, onEdit, onDelete }: GoalCardProps) {
           <Badge variant="outline" className="text-xs">
             {goal.category}
           </Badge>
+          {goal.microGoalsCount && goal.microGoalsCount > 0 && (
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <List className="h-3 w-3" />
+              {goal.completedMicroGoalsCount || 0}/{goal.microGoalsCount} micro metas
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
@@ -100,6 +109,19 @@ export function GoalCard({ goal, className, onEdit, onDelete }: GoalCardProps) {
             </div>
             
             <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMicroGoalsModalOpen(true);
+                }}
+                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                title="Gerenciar micro metas"
+              >
+                <Target className="h-4 w-4" />
+              </Button>
+              
               {onEdit && (
                 <Button
                   variant="ghost"
@@ -149,6 +171,13 @@ export function GoalCard({ goal, className, onEdit, onDelete }: GoalCardProps) {
           </div>
         </div>
       </CardContent>
+      
+      <MicroGoalsModal
+        open={isMicroGoalsModalOpen}
+        onOpenChange={setIsMicroGoalsModalOpen}
+        goalId={goal.id}
+        goalTitle={goal.title}
+      />
     </Card>
   );
 }
