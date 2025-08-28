@@ -1,26 +1,19 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { Calendar, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calendar, Clock, AlertTriangle, CheckCircle, Edit, Trash2 } from "lucide-react";
+import type { Goal, GoalStatus, GoalPriority } from "@/hooks/use-goals";
 
-export type GoalStatus = "planned" | "in_progress" | "completed" | "overdue" | "paused";
-export type GoalPriority = "high" | "medium" | "low";
-
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  status: GoalStatus;
-  priority: GoalPriority;
-  progress: number;
-  dueDate: string;
-  category: string;
-}
+export type { GoalStatus, GoalPriority };
 
 interface GoalCardProps {
   goal: Goal;
   className?: string;
+  onEdit?: (goal: Goal) => void;
+  onDelete?: (goalId: string) => void;
 }
 
 const statusConfig = {
@@ -37,7 +30,7 @@ const priorityConfig = {
   low: { label: "Baixa", variant: "outline" as const, className: "border-success text-success" },
 };
 
-export function GoalCard({ goal, className }: GoalCardProps) {
+export function GoalCard({ goal, className, onEdit, onDelete }: GoalCardProps) {
   const statusInfo = statusConfig[goal.status];
   const priorityInfo = priorityConfig[goal.priority];
   const StatusIcon = statusInfo.icon;
@@ -100,9 +93,59 @@ export function GoalCard({ goal, className }: GoalCardProps) {
             />
           </div>
 
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>Prazo: {new Date(goal.dueDate).toLocaleDateString('pt-BR')}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>Prazo: {new Date(goal.dueDate).toLocaleDateString('pt-BR')}</span>
+            </div>
+            
+            <div className="flex gap-1">
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(goal);
+                  }}
+                  className="h-8 w-8 p-0 hover:bg-muted"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+              
+              {onDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a meta "{goal.title}" e todos os seus dados.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => onDelete(goal.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Sim, deletar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

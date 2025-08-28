@@ -5,7 +5,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { GoalCard } from "@/components/ui/goal-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useGoals } from "@/hooks/use-goals";
+import { useGoals, Goal } from "@/hooks/use-goals";
 import { CalendarIntegrationModal } from "@/components/calendar-integration-modal";
 import { GoalCreationModal } from "@/components/goal-creation-modal";
 import { AuthModal } from "@/components/auth-modal";
@@ -27,11 +27,12 @@ import heroImage from "@/assets/hero-dashboard.png";
 
 const Index = () => {
   const { toast } = useToast();
-  const { goals, loading } = useGoals();
+  const { goals, loading, deleteGoal } = useGoals();
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
 
   useEffect(() => {
     // Check for existing session
@@ -225,10 +226,18 @@ const Index = () => {
                       Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="h-48 bg-muted/20 rounded-lg animate-pulse" />
                       ))
-                    ) : priorityGoals.length > 0 ? (
-                      priorityGoals.map((goal) => (
-                        <GoalCard key={goal.id} goal={goal} />
-                      ))
+                     ) : priorityGoals.length > 0 ? (
+                       priorityGoals.map((goal) => (
+                         <GoalCard 
+                           key={goal.id} 
+                           goal={goal}
+                           onEdit={(goal) => {
+                             setEditingGoal(goal);
+                             setIsGoalModalOpen(true);
+                           }}
+                           onDelete={deleteGoal}
+                         />
+                       ))
                     ) : (
                       <div className="col-span-2 text-center py-12">
                         <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -336,7 +345,13 @@ const Index = () => {
       
       <GoalCreationModal 
         open={isGoalModalOpen} 
-        onOpenChange={setIsGoalModalOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingGoal(null);
+          }
+          setIsGoalModalOpen(open);
+        }}
+        editingGoal={editingGoal}
       />
       {/* Debug: Modal state = {isGoalModalOpen.toString()} */}
     </div>

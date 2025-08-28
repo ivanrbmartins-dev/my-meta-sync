@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useGoals } from "@/hooks/use-goals";
-import { Calendar, Target } from "lucide-react";
+import { useGoals, Goal } from "@/hooks/use-goals";
+import { Calendar, Target, Edit } from "lucide-react";
 
 interface GoalCreationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingGoal?: Goal | null;
 }
 
-export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps) {
+export function GoalCreationModal({ open, onOpenChange, editingGoal }: GoalCreationModalProps) {
   const { toast } = useToast();
-  const { createGoal } = useGoals();
+  const { createGoal, updateGoal } = useGoals();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -33,6 +34,30 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
     startDate: "",
     dueDate: "",
   });
+
+  const isEditing = !!editingGoal;
+
+  useEffect(() => {
+    if (editingGoal) {
+      setFormData({
+        title: editingGoal.title,
+        description: editingGoal.description || "",
+        category: editingGoal.category || "",
+        priority: editingGoal.priority,
+        startDate: editingGoal.startDate || "",
+        dueDate: editingGoal.dueDate,
+      });
+    } else {
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        priority: "",
+        startDate: "",
+        dueDate: "",
+      });
+    }
+  }, [editingGoal, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,25 +73,28 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
 
     setIsSubmitting(true);
     
-    const success = await createGoal({
-      title: formData.title,
-      description: formData.description || undefined,
-      category: formData.category || undefined,
-      priority: formData.priority as any,
-      startDate: formData.startDate || undefined,
-      dueDate: formData.dueDate,
-    });
+    let success;
+    if (isEditing && editingGoal) {
+      success = await updateGoal(editingGoal.id, {
+        title: formData.title,
+        description: formData.description || undefined,
+        category: formData.category || undefined,
+        priority: formData.priority as any,
+        startDate: formData.startDate || undefined,
+        dueDate: formData.dueDate,
+      });
+    } else {
+      success = await createGoal({
+        title: formData.title,
+        description: formData.description || undefined,
+        category: formData.category || undefined,
+        priority: formData.priority as any,
+        startDate: formData.startDate || undefined,
+        dueDate: formData.dueDate,
+      });
+    }
 
     if (success) {
-      // Reset form and close modal
-      setFormData({
-        title: "",
-        description: "",
-        category: "",
-        priority: "",
-        startDate: "",
-        dueDate: "",
-      });
       onOpenChange(false);
     }
     
@@ -82,11 +110,14 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Criar Nova Meta
+            {isEditing ? <Edit className="h-5 w-5 text-primary" /> : <Target className="h-5 w-5 text-primary" />}
+            {isEditing ? "Editar Meta" : "Criar Nova Meta"}
           </DialogTitle>
           <DialogDescription>
-            Defina uma nova meta para acompanhar seu progresso e alcançar seus objetivos.
+            {isEditing 
+              ? "Faça as alterações necessárias em sua meta." 
+              : "Defina uma nova meta para acompanhar seu progresso e alcançar seus objetivos."
+            }
           </DialogDescription>
         </DialogHeader>
         
@@ -174,7 +205,7 @@ export function GoalCreationModal({ open, onOpenChange }: GoalCreationModalProps
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               <Calendar className="mr-2 h-4 w-4" />
-              {isSubmitting ? "Criando..." : "Criar Meta"}
+              {isSubmitting ? (isEditing ? "Salvando..." : "Criando...") : (isEditing ? "Salvar Alterações" : "Criar Meta")}
             </Button>
           </DialogFooter>
         </form>
