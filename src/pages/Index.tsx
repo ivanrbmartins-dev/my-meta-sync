@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { GoalCard } from "@/components/ui/goal-card";
+import { CategoriesCard } from "@/components/ui/categories-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useGoals, Goal } from "@/hooks/use-goals";
@@ -270,6 +271,8 @@ const Index = () => {
 
                 {/* Progress Overview */}
                 <div className="space-y-6">
+                  <CategoriesCard goals={goals} loading={loading} />
+                  
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center">
