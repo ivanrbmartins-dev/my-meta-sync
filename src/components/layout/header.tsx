@@ -22,7 +22,12 @@ import {
   Calendar
 } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
+}
+
+export function Header({ searchTerm = "", onSearchChange }: HeaderProps = {}) {
   const { toast } = useToast();
   const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
 
@@ -50,6 +55,8 @@ export function Header() {
             <Input
               placeholder="Buscar metas..."
               className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
+              value={searchTerm}
+              onChange={(e) => onSearchChange?.(e.target.value)}
             />
           </div>
         </div>

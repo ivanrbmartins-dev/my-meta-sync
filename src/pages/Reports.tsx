@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 const Reports = () => {
   const { goals, loading } = useGoals();
   const [user, setUser] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,8 +37,20 @@ const Reports = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Filtrar metas baseado no termo de busca
+  const filteredGoals = useMemo(() => {
+    if (!searchTerm.trim()) return goals;
+    
+    const lowercaseSearchTerm = searchTerm.toLowerCase();
+    return goals.filter(goal => 
+      goal.title.toLowerCase().includes(lowercaseSearchTerm) ||
+      goal.description?.toLowerCase().includes(lowercaseSearchTerm) ||
+      goal.category?.toLowerCase().includes(lowercaseSearchTerm)
+    );
+  }, [goals, searchTerm]);
+
   const todayStats = useMemo(() => {
-    if (!goals.length) return {
+    if (!filteredGoals.length) return {
       totalGoals: 0,
       completedToday: 0,
       inProgress: 0,
@@ -47,37 +60,37 @@ const Reports = () => {
     };
 
     const today = new Date();
-    const completedToday = goals.filter(g => g.status === 'completed').length;
-    const inProgress = goals.filter(g => g.status === 'in_progress').length;
-    const overdue = goals.filter(g => {
+    const completedToday = filteredGoals.filter(g => g.status === 'completed').length;
+    const inProgress = filteredGoals.filter(g => g.status === 'in_progress').length;
+    const overdue = filteredGoals.filter(g => {
       const dueDate = new Date(g.dueDate);
       return dueDate < today && g.status !== 'completed';
     }).length;
     
-    const upcomingDeadlines = goals.filter(g => {
+    const upcomingDeadlines = filteredGoals.filter(g => {
       const dueDate = new Date(g.dueDate);
       const daysUntilDue = differenceInDays(dueDate, today);
       return daysUntilDue <= 7 && daysUntilDue >= 0 && g.status !== 'completed';
     }).length;
 
-    const completionRate = goals.length > 0 ? Math.round((completedToday / goals.length) * 100) : 0;
+    const completionRate = filteredGoals.length > 0 ? Math.round((completedToday / filteredGoals.length) * 100) : 0;
 
     return {
-      totalGoals: goals.length,
+      totalGoals: filteredGoals.length,
       completedToday,
       inProgress,
       overdue,
       completionRate,
       upcomingDeadlines
     };
-  }, [goals]);
+  }, [filteredGoals]);
 
   const categoryStats = useMemo(() => {
-    if (!goals.length) return [];
+    if (!filteredGoals.length) return [];
 
     const categoryMap = new Map();
     
-    goals.forEach(goal => {
+    filteredGoals.forEach(goal => {
       const category = goal.category || 'Sem categoria';
       if (!categoryMap.has(category)) {
         categoryMap.set(category, {
@@ -102,22 +115,22 @@ const Reports = () => {
       avgProgress: Math.round(cat.avgProgress / cat.total),
       completionRate: Math.round((cat.completed / cat.total) * 100)
     }));
-  }, [goals]);
+  }, [filteredGoals]);
 
   const priorityStats = useMemo(() => {
-    if (!goals.length) return { high: 0, medium: 0, low: 0 };
+    if (!filteredGoals.length) return { high: 0, medium: 0, low: 0 };
 
     return {
-      high: goals.filter(g => g.priority === 'high').length,
-      medium: goals.filter(g => g.priority === 'medium').length,
-      low: goals.filter(g => g.priority === 'low').length,
+      high: filteredGoals.filter(g => g.priority === 'high').length,
+      medium: filteredGoals.filter(g => g.priority === 'medium').length,
+      low: filteredGoals.filter(g => g.priority === 'low').length,
     };
-  }, [goals]);
+  }, [filteredGoals]);
 
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
         <div className="flex">
           <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] border-r bg-muted/20">
             <Sidebar />
@@ -142,7 +155,7 @@ const Reports = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       
       <div className="flex">
         <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] border-r bg-muted/20">
@@ -154,15 +167,31 @@ const Reports = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {searchTerm ? `Relatórios - "${searchTerm}"` : "Relatórios"}
+                </h1>
                 <p className="text-muted-foreground">
-                  Acompanhe seu progresso e desempenho - {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {searchTerm 
+                    ? `${filteredGoals.length} ${filteredGoals.length === 1 ? 'meta encontrada' : 'metas encontradas'} - ${format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+                    : `Acompanhe seu progresso e desempenho - ${format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+                  }
                 </p>
               </div>
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Exportar Relatório
-              </Button>
+              <div className="flex items-center space-x-2">
+                {searchTerm && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    Limpar filtro
+                  </Button>
+                )}
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar Relatório
+                </Button>
+              </div>
             </div>
 
             {/* Daily Summary Cards */}
@@ -345,9 +374,9 @@ const Reports = () => {
                       </div>
                     ))}
                   </div>
-                ) : goals.length > 0 ? (
+                ) : filteredGoals.length > 0 ? (
                   <div className="space-y-4">
-                    {goals.slice(0, 5).map((goal) => (
+                    {filteredGoals.slice(0, 5).map((goal) => (
                       <div key={goal.id} className="flex items-center space-x-4 p-3 rounded-lg bg-muted/20">
                         <div className={`h-3 w-3 rounded-full ${
                           goal.status === 'completed' ? 'bg-success' :
@@ -375,7 +404,18 @@ const Reports = () => {
                 ) : (
                   <div className="text-center py-8">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">Nenhuma atividade encontrada</p>
+                    <p className="text-muted-foreground">
+                      {searchTerm ? `Nenhuma atividade encontrada para "${searchTerm}"` : "Nenhuma atividade encontrada"}
+                    </p>
+                    {searchTerm && (
+                      <Button 
+                        className="mt-4" 
+                        variant="outline" 
+                        onClick={() => setSearchTerm("")}
+                      >
+                        Limpar busca
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>

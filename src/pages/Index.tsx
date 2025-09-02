@@ -34,6 +34,7 @@ const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     // Check for existing session
@@ -49,25 +50,37 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Filtrar metas baseado no termo de busca
+  const filteredGoals = useMemo(() => {
+    if (!searchTerm.trim()) return goals;
+    
+    const lowercaseSearchTerm = searchTerm.toLowerCase();
+    return goals.filter(goal => 
+      goal.title.toLowerCase().includes(lowercaseSearchTerm) ||
+      goal.description?.toLowerCase().includes(lowercaseSearchTerm) ||
+      goal.category?.toLowerCase().includes(lowercaseSearchTerm)
+    );
+  }, [goals, searchTerm]);
+
   const stats = useMemo(() => {
-    const total = goals.length;
-    const inProgress = goals.filter(g => g.status === 'in_progress').length;
-    const completed = goals.filter(g => g.status === 'completed').length;
-    const overdue = goals.filter(g => g.status === 'overdue').length;
-    const avgProgress = total > 0 ? Math.round(goals.reduce((acc, g) => acc + g.progress, 0) / total) : 0;
+    const total = filteredGoals.length;
+    const inProgress = filteredGoals.filter(g => g.status === 'in_progress').length;
+    const completed = filteredGoals.filter(g => g.status === 'completed').length;
+    const overdue = filteredGoals.filter(g => g.status === 'overdue').length;
+    const avgProgress = total > 0 ? Math.round(filteredGoals.reduce((acc, g) => acc + g.progress, 0) / total) : 0;
     
     return { total, inProgress, completed, overdue, avgProgress };
-  }, [goals]);
+  }, [filteredGoals]);
 
   const priorityGoals = useMemo(() => {
-    return goals
+    return filteredGoals
       .filter(g => g.status !== 'completed')
       .sort((a, b) => {
         const priorityOrder = { high: 3, medium: 2, low: 1 };
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       })
       .slice(0, 4);
-  }, [goals]);
+  }, [filteredGoals]);
 
   const handleConnectCalendar = () => {
     if (!user) {
@@ -96,7 +109,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       
       <div className="flex">
         <aside className="hidden lg:block sticky top-16 h-[calc(100vh-4rem)] border-r bg-muted/20">
@@ -214,13 +227,31 @@ const Index = () => {
                 {/* Goals List */}
                 <div className="lg:col-span-2">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-foreground">
-                      Suas Metas Prioritárias
-                    </h2>
-                    <Button variant="outline">
-                      Ver Todas
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground">
+                        {searchTerm ? `Resultados para "${searchTerm}"` : "Suas Metas Prioritárias"}
+                      </h2>
+                      {searchTerm && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {priorityGoals.length} {priorityGoals.length === 1 ? 'meta encontrada' : 'metas encontradas'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {searchTerm && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          Limpar filtro
+                        </Button>
+                      )}
+                      <Button variant="outline">
+                        Ver Todas
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     {loading ? (
@@ -239,39 +270,52 @@ const Index = () => {
                            onDelete={deleteGoal}
                          />
                        ))
-                    ) : (
-                      <div className="col-span-2 text-center py-12">
-                        <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          {user ? "Nenhuma meta encontrada" : "Entre para ver suas metas"}
-                        </h3>
-                        <p className="text-muted-foreground mb-4">
-                          {user 
-                            ? "Crie sua primeira meta para começar a acompanhar seu progresso."
-                            : "Faça login ou crie uma conta para gerenciar suas metas."
-                          }
-                        </p>
-                        <Button onClick={user ? handleCreateGoal : () => setIsAuthModalOpen(true)}>
-                          {user ? (
-                            <>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Criar Primeira Meta
-                            </>
-                          ) : (
-                            <>
-                              <LogIn className="mr-2 h-4 w-4" />
-                              Entrar
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                     ) : (
+                       <div className="col-span-2 text-center py-12">
+                         <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                         <h3 className="text-lg font-semibold text-foreground mb-2">
+                           {searchTerm 
+                             ? "Nenhuma meta encontrada" 
+                             : user 
+                               ? "Nenhuma meta encontrada" 
+                               : "Entre para ver suas metas"
+                           }
+                         </h3>
+                         <p className="text-muted-foreground mb-4">
+                           {searchTerm
+                             ? `Nenhuma meta corresponde ao termo "${searchTerm}". Tente uma busca diferente.`
+                             : user 
+                               ? "Crie sua primeira meta para começar a acompanhar seu progresso."
+                               : "Faça login ou crie uma conta para gerenciar suas metas."
+                           }
+                         </p>
+                         {searchTerm ? (
+                           <Button onClick={() => setSearchTerm("")}>
+                             Limpar busca
+                           </Button>
+                         ) : (
+                           <Button onClick={user ? handleCreateGoal : () => setIsAuthModalOpen(true)}>
+                             {user ? (
+                               <>
+                                 <Plus className="mr-2 h-4 w-4" />
+                                 Criar Primeira Meta
+                               </>
+                             ) : (
+                               <>
+                                 <LogIn className="mr-2 h-4 w-4" />
+                                 Entrar
+                               </>
+                             )}
+                           </Button>
+                         )}
+                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Progress Overview */}
                 <div className="space-y-6">
-                  <CategoriesCard goals={goals} loading={loading} />
+                  <CategoriesCard goals={filteredGoals} loading={loading} />
                   
                   <Card>
                     <CardHeader>
