@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLocation, Link } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Target, 
@@ -31,6 +32,7 @@ const categories = [
 ];
 
 export function Sidebar({ className }: SidebarProps) {
+  const location = useLocation();
   return (
     <div className={cn("pb-12 w-64", className)}>
       <div className="space-y-4 py-4">
@@ -51,17 +53,20 @@ export function Sidebar({ className }: SidebarProps) {
             {navigation.map((item) => (
               <Button
                 key={item.name}
-                variant={item.current ? "secondary" : "ghost"}
+                variant={location.pathname === item.href ? "secondary" : "ghost"}
                 className="w-full justify-start"
                 size="sm"
+                asChild
               >
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.name}
-                {item.count && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {item.count}
-                  </Badge>
-                )}
+                <Link to={item.href}>
+                  <item.icon className="mr-2 h-4 w-4" />
+                  {item.name}
+                  {item.count && (
+                    <Badge variant="secondary" className="ml-auto">
+                      {item.count}
+                    </Badge>
+                  )}
+                </Link>
               </Button>
             ))}
           </div>
